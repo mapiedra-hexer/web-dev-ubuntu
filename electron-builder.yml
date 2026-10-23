@@ -1,0 +1,42 @@
+appId: com.dobuss.devhub
+productName: DevHub
+executableName: devhub
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# Ficheros que el proceso principal usa en tiempo de ejecución (process.resourcesPath).
+extraResources:
+  - from: core
+    to: core
+  - from: images
+    to: images
+  - from: build/privileged.sh
+    to: build/privileged.sh
+linux:
+  target: [deb]
+  category: Development
+  maintainer: Dobuss <info@nextinnoai.com>
+  synopsis: Entorno local WordPress / PrestaShop con Docker
+  description: >-
+    Monta proyectos WordPress y PrestaShop desde GitHub con su base de datos de
+    Google Drive, cada uno con su versión de PHP y un dominio *.localhost.
+deb:
+  depends:
+    - git
+    - ca-certificates
+    - unzip
+    - libnss3-tools
+    - policykit-1 | pkexec
+    - docker.io | docker-ce
+    - docker-compose-v2 | docker-compose-plugin
+  recommends:
+    - mkcert
+  afterInstall: build/deb/postinst.sh
+  afterRemove: build/deb/postrm.sh
+publish:
+  provider: github
+  owner: dobuss
+  repo: devhub

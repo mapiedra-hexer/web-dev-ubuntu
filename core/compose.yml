@@ -1,0 +1,97 @@
+# Servicios comunes de DevHub. Lo arranca la app con:
+#   docker compose -p devhub-core -f core/compose.yml --env-file ~/.local/share/devhub/core.env up -d
+# Variables (core.env): DEVHUB_HTTP_PORT, DEVHUB_HTTPS_PORT, DEVHUB_DATA, MARIADB_ROOT_PASSWORD
+
+name: devhub-core
+
+networks:
+  devhub:
+    name: devhub
+
+volumes:
+  mariadb-data:
+    name: devhub-mariadb-data
+
+services:
+  traefik:
+    image: traefik:v3.6
+    container_name: devhub-traefik
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=devhub
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --api.dashboard=true
+      - --log.level=WARN
+    ports:
+      - "${DEVHUB_HTTP_PORT:-80}:80"
+      - "${DEVHUB_HTTPS_PORT:-443}:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DEVHUB_DATA}/traefik/dynamic:/etc/traefik/dynamic:ro
+      - ${DEVHUB_DATA}/certs:/certs:ro
+    labels:
+      devhub.core: "true"
+      traefik.enable: "true"
+      traefik.http.routers.devhub-traefik.rule: Host(`traefik.localhost`)
+      traefik.http.routers.devhub-traefik.entrypoints: web
+      traefik.http.routers.devhub-traefik.service: api@internal
+    networks: [devhub]
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: devhub-mariadb
+    hostname: devhub-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max-allowed-packet=512M
+      - --innodb-log-file-size=256M
+      - --sql-mode=NO_ENGINE_SUBSTITUTION
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    labels:
+      devhub.core: "true"
+    networks: [devhub]
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: devhub-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: devhub-mariadb
+      PMA_USER: root
+      PMA_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 1G
+    depends_on: [mariadb]
+    labels:
+      devhub.core: "true"
+      traefik.enable: "true"
+      traefik.http.routers.devhub-pma.rule: Host(`pma.localhost`)
+      traefik.http.routers.devhub-pma.entrypoints: web
+      traefik.http.services.devhub-pma.loadbalancer.server.port: "80"
+    networks: [devhub]
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    container_name: devhub-mailpit
+    restart: unless-stopped
+    labels:
+      devhub.core: "true"
+      traefik.enable: "true"
+      traefik.http.routers.devhub-mail.rule: Host(`mail.localhost`)
+      traefik.http.routers.devhub-mail.entrypoints: web
+      traefik.http.services.devhub-mail.loadbalancer.server.port: "8025"
+    networks: [devhub]
