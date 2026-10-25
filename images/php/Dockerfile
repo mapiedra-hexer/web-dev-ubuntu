@@ -5,9 +5,12 @@ FROM php:${PHP_VERSION}-apache
 
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
 
-# Las bases Debian antiguas (5.6, 7.1–7.4) ya están en archive.debian.org.
+# Las bases Debian antiguas (buster: 7.1–7.2; bullseye: 7.3–8.0) ya
+# no están en los mirrors normales: a veces falla el update y otras solo las
+# descargas. Si la instalación falla por lo que sea, se pasa a archive.debian.org.
 RUN set -eux; \
-    if ! apt-get update; then \
+    PKGS="msmtp mariadb-client less unzip git curl ca-certificates"; \
+    if ! { apt-get update && apt-get install -y --no-install-recommends $PKGS; }; then \
       for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do \
         [ -f "$f" ] || continue; \
         sed -i -e 's|deb.debian.org|archive.debian.org|g' \
@@ -15,9 +18,11 @@ RUN set -eux; \
                -e 's|security.debian.org|archive.debian.org/debian-security|g' \
                -e '/-updates/d' "$f"; \
       done; \
-      apt-get -o Acquire::Check-Valid-Until=false update; \
+      echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99devhub-archive; \
+      rm -rf /var/lib/apt/lists/*; \
+      apt-get update; \
+      apt-get install -y --no-install-recommends $PKGS; \
     fi; \
-    apt-get install -y --no-install-recommends msmtp mariadb-client less unzip git curl ca-certificates; \
     rm -rf /var/lib/apt/lists/*
 
 RUN install-php-extensions gd mysqli pdo_mysql intl zip soap bcmath opcache exif imagick xdebug @composer

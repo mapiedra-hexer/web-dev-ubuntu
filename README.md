@@ -62,7 +62,7 @@ Mientras tanto, cada persona puede usar un token personal con permiso `repo`.
 4. `DEVHUB_GOOGLE_CLIENT_ID` (variable) y `DEVHUB_GOOGLE_CLIENT_SECRET` (secreto) en el repo, o en *Configuración → Avanzado*. En las apps de escritorio Google no considera confidencial este secreto.
 
 ### Imágenes PHP
-El workflow `release.yml` publica `ghcr.io/<org>/devhub-php:<versión>` (5.6 y 7.1 a 8.4). Pon ese repositorio en *Configuración → Avanzado* para descargarlas en vez de construirlas en cada equipo.
+El workflow `release.yml` publica `ghcr.io/<org>/devhub-php:<versión>` (7.1 a 8.4). Pon ese repositorio en *Configuración → Avanzado* para descargarlas en vez de construirlas en cada equipo.
 
 ## Desarrollo
 
@@ -78,6 +78,7 @@ Publicar una versión: sube la versión en `package.json`, crea el tag `vX.Y.Z` 
 
 ## Limitaciones conocidas
 
+- PHP 5.6 no está disponible: su base (Debian stretch) tiene caducadas las claves de firma del archivo de Debian y no se puede instalar software verificado. Las versiones soportadas son 7.1 a 8.4.
 - WordPress multisite: se monta, pero el dominio de `wp_blogs`/`wp_site` y las constantes `MULTISITE` hay que ajustarlos a mano.
 - En PrestaShop los duplicados siempre usan su propia carpeta (worktree): la caché de Symfony no se puede compartir entre instancias.
 - Las imágenes de producto de PrestaShop servidas con URL amigable (`/123-home_default/x.jpg`) no pasan por el proxy de media; las rutas `/img/...` sí.

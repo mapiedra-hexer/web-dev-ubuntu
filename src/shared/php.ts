@@ -1,6 +1,6 @@
 import type { CmsType, PhpVersion } from './types'
 
-export const PHP_VERSIONS: PhpVersion[] = ['5.6', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+export const PHP_VERSIONS: PhpVersion[] = ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
 
 export function isPhpVersion(v: string): v is PhpVersion {
   return (PHP_VERSIONS as string[]).includes(v)
